@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backpropagation Neural Network Simulator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.container {
+    max-width: 1250px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 5px;
+    color: #f8fafc;
+}
+
+.subtitle {
+    text-align: center;
+    color: #94a3b8;
+    margin-bottom: 25px;
+}
+
+.panel {
+    background: #1e293b;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+    box-shadow: 0 5px 20px rgba(0,0,0,.25);
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+    gap: 12px;
+}
+
+.control label {
+    display: block;
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+input {
+    width: 100%;
+    padding: 9px;
+    border-radius: 7px;
+    border: 1px solid #475569;
+    background: #0f172a;
+    color: white;
+}
+
+button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #2563eb;
+    color: white;
+    font-weight: bold;
+    margin: 4px;
+}
+
+button:hover {
+    opacity: .85;
+}
+
+button.secondary {
+    background: #475569;
+}
+
+button.success {
+    background: #16a34a;
+}
+
+button.warning {
+    background: #d97706;
+}
+
+.step-title {
+    color: #60a5fa;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.explanation {
+    line-height: 1.7;
+    color: #cbd5e1;
+}
+
+.formula {
+    background: #0f172a;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: "Courier New", monospace;
+    color: #facc15;
+    margin: 10px 0;
+    overflow-x: auto;
+}
+
+.network-container {
+    overflow-x: auto;
+}
+
+svg {
+    width: 100%;
+    min-width: 850px;
+    height: 470px;
+}
+
+.node {
+    stroke: #e2e8f0;
+    stroke-width: 3;
+}
+
+.input-node {
+    fill: #2563eb;
+}
+
+.hidden-node {
+    fill: #7c3aed;
+}
+
+.output-node {
+    fill: #16a34a;
+}
+
+.node-text {
+    fill: white;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-weight: bold;
+}
+
+.edge {
+    stroke: #64748b;
+    stroke-width: 3;
+}
+
+.edge.positive {
+    stroke: #22c55e;
+}
+
+.edge.negative {
+    stroke: #ef4444;
+}
+
+.weight-text {
+    fill: #f8fafc;
+    font-size: 14px;
+    font-weight: bold;
+    text-anchor: middle;
+}
+
+.arrow {
+    fill: #94a3b8;
+}
+
+.results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+    gap: 12px;
+}
+
+.metric {
+    background: #0f172a;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.metric .value {
+    font-size: 25px;
+    font-weight: bold;
+    color: #60a5fa;
+    margin-top: 5px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 9px;
+    border-bottom: 1px solid #334155;
+    text-align: center;
+}
+
+th {
+    color: #60a5fa;
+}
+
+.green {
+    color: #22c55e;
+}
+
+.red {
+    color: #ef4444;
+}
+
+.yellow {
+    color: #facc15;
+}
+
+.progress {
+    height: 12px;
+    background: #334155;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #22c55e;
+    transition: width .4s;
+}
+
+@media(max-width:700px) {
+    .container {
+        padding: 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🧠 Backpropagation Neural Network Simulator</h1>
+
+<div class="subtitle">
+2 Inputs → 2 Hidden Neurons → 1 Output | Step-by-Step Learning
+</div>
+
+<!-- CONTROLS -->
+<div class="panel">
+
+<h2>⚙️ Training Parameters</h2>
+
+<div class="controls">
+
+<div class="control">
+<label>Input x₁</label>
+<input id="x1" type="number" value="0.8" step="0.1">
+</div>
+
+<div class="control">
+<label>Input x₂</label>
+<input id="x2" type="number" value="0.4" step="0.1">
+</div>
+
+<div class="control">
+<label>Target y</label>
+<input id="target" type="number" value="1" step="0.1">
+</div>
+
+<div class="control">
+<label>Learning Rate η</label>
+<input id="lr" type="number" value="0.5" step="0.05">
+</div>
+
+</div>
+
+<br>
+
+<button onclick="nextStep()">➡️ Next Step</button>
+<button class="success" onclick="autoRun()">▶ Auto Run</button>
+<button class="warning" onclick="stopAuto()">⏹ Stop</button>
+<button class="secondary" onclick="resetNetwork()">🔄 Reset</button>
+
+</div>
+
+
+<!-- STEP EXPLANATION -->
+
+<div class="panel">
+
+<div class="step-title" id="stepTitle">
+Step 0 — Ready
+</div>
+
+<div class="explanation" id="explanation">
+
+The neural network contains two input neurons, two hidden neurons,
+and one output neuron.
+
+Click <b>Next Step</b> to perform backpropagation one stage at a time.
+
+</div>
+
+</div>
+
+
+<!-- NETWORK -->
+
+<div class="panel">
+
+<h2>🔗 Neural Network</h2>
+
+<div class="network-container">
+
+<svg viewBox="0 0 900 470">
+
+<!-- EDGES INPUT → HIDDEN -->
+
+<line id="e1" class="edge" x1="150" y1="150" x2="400" y2="140"/>
+<line id="e2" class="edge" x1="150" y1="150" x2="400" y2="320"/>
+
+<line id="e3" class="edge" x1="150" y1="320" x2="400" y2="140"/>
+<line id="e4" class="edge" x1="150" y1="320" x2="400" y2="320"/>
+
+<!-- HIDDEN → OUTPUT -->
+
+<line id="e5" class="edge" x1="400" y1="140" x2="680" y2="230"/>
+<line id="e6" class="edge" x1="400" y1="320" x2="680" y2="230"/>
+
+
+<!-- INPUT NODES -->
+
+<circle class="node input-node" cx="150" cy="150" r="48"/>
+<circle class="node input-node" cx="150" cy="320" r="48"/>
+
+<text id="x1Text" class="node-text" x="150" y="150">x₁</text>
+<text id="x2Text" class="node-text" x="150" y="320">x₂</text>
+
+
+<!-- HIDDEN NODES -->
+
+<circle class="node hidden-node" cx="400" cy="140" r="55"/>
+<circle class="node hidden-node" cx="400" cy="320" r="55"/>
+
+<text id="h1Text" class="node-text" x="400" y="140">h₁</text>
+<text id="h2Text" class="node-text" x="400" y="320">h₂</text>
+
+
+<!-- OUTPUT -->
+
+<circle class="node output-node" cx="680" cy="230" r="60"/>
+
+<text id="outText" class="node-text" x="680" y="230">ŷ</text>
+
+
+<!-- WEIGHTS -->
+
+<text id="w1Text" class="weight-text" x="275" y="125">w₁</text>
+<text id="w2Text" class="weight-text" x="275" y="220">w₂</text>
+<text id="w3Text" class="weight-text" x="275" y="265">w₃</text>
+<text id="w4Text" class="weight-text" x="275" y="350">w₄</text>
+
+<text id="w5Text" class="weight-text" x="540" y="160">w₅</text>
+<text id="w6Text" class="weight-text" x="540" y="310">w₆</text>
+
+</svg>
+
+</div>
+
+</div>
+
+
+<!-- LIVE RESULTS -->
+
+<div class="panel">
+
+<h2>📊 Live Network Values</h2>
+
+<div class="results">
+
+<div class="metric">
+Input x₁
+<div class="value" id="vX1">0.80</div>
+</div>
+
+<div class="metric">
+Input x₂
+<div class="value" id="vX2">0.40</div>
+</div>
+
+<div class="metric">
+Hidden h₁
+<div class="value" id="vH1">-</div>
+</div>
+
+<div class="metric">
+Hidden h₂
+<div class="value" id="vH2">-</div>
+</div>
+
+<div class="metric">
+Prediction ŷ
+<div class="value" id="vY">-</div>
+</div>
+
+<div class="metric">
+Target
+<div class="value" id="vTarget">1.00</div>
+</div>
+
+<div class="metric">
+Loss
+<div class="value" id="vLoss">-</div>
+</div>
+
+</div>
+
+<div class="progress">
+<div class="progress-bar" id="lossBar"></div>
+</div>
+
+</div>
+
+
+<!-- CALCULATIONS -->
+
+<div class="panel">
+
+<h2>🧮 Calculations</h2>
+
+<div id="calculationArea">
+
+Click <b>Next Step</b> to see the mathematical calculations.
+
+</div>
+
+</div>
+
+
+<!-- WEIGHTS -->
+
+<div class="panel">
+
+<h2>⚖️ Current Weights & Biases</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Gradient</th>
+<th>Updated Value</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>w₁</td>
+<td id="tw1">0.500</td>
+<td id="gw1">-</td>
+<td id="uw1">-</td>
+</tr>
+
+<tr>
+<td>w₂</td>
+<td id="tw2">-0.300</td>
+<td id="gw2">-</td>
+<td id="uw2">-</td>
+</tr>
+
+<tr>
+<td>w₃</td>
+<td id="tw3">0.800</td>
+<td id="gw3">-</td>
+<td id="uw3">-</td>
+</tr>
+
+<tr>
+<td>w₄</td>
+<td id="tw4">0.200</td>
+<td id="gw4">-</td>
+<td id="uw4">-</td>
+</tr>
+
+<tr>
+<td>w₅</td>
+<td id="tw5">0.400</td>
+<td id="gw5">-</td>
+<td id="uw5">-</td>
+</tr>
+
+<tr>
+<td>w₆</td>
+<td id="tw6">-0.500</td>
+<td id="gw6">-</td>
+<td id="uw6">-</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- THEORY -->
+
+<div class="panel">
+
+<h2>📚 Backpropagation Concept</h2>
+
+<p>
+Backpropagation is an algorithm used to train neural networks.
+It calculates how much each weight contributed to the prediction error.
+The weights are then adjusted using gradient descent.
+</p>
+
+<h3>1️⃣ Forward Propagation</h3>
+
+<div class="formula">
+z₁ = x₁w₁ + x₂w₂ + b₁
+<br>
+h₁ = sigmoid(z₁)
+</div>
+
+<div class="formula">
+z₂ = x₁w₃ + x₂w₄ + b₂
+<br>
+h₂ = sigmoid(z₂)
+</div>
+
+<div class="formula">
+z₃ = h₁w₅ + h₂w₆ + b₃
+<br>
+ŷ = sigmoid(z₃)
+</div>
+
+
+<h3>2️⃣ Calculate Error</h3>
+
+<div class="formula">
+Loss = ½ (y − ŷ)²
+</div>
+
+
+<h3>3️⃣ Backpropagation</h3>
+
+<p>
+The error is propagated backwards from the output layer
+towards the hidden layer using the chain rule.
+</p>
+
+<div class="formula">
+δoutput = (ŷ − y) × sigmoid'(z₃)
+</div>
+
+<div class="formula">
+sigmoid'(z) = sigmoid(z) × (1 − sigmoid(z))
+</div>
+
+
+<h3>4️⃣ Gradient Calculation</h3>
+
+<div class="formula">
+∂Loss/∂w₅ = δoutput × h₁
+<br>
+∂Loss/∂w₆ = δoutput × h₂
+</div>
+
+
+<h3>5️⃣ Weight Update</h3>
+
+<div class="formula">
+w(new) = w(old) − η × gradient
+</div>
+
+<p>
+where <b>η</b> is the learning rate.
+</p>
+
+</div>
+
+</div>
+
+
+<script>
+
+let step = 0;
+let timer = null;
+
+let weights = {
+    w1: 0.5,
+    w2: -0.3,
+    w3: 0.8,
+    w4: 0.2,
+    w5: 0.4,
+    w6: -0.5
+};
+
+let biases = {
+    b1: 0.1,
+    b2: -0.1,
+    b3: 0.05
+};
+
+let values = {};
+let gradients = {};
+
+function sigmoid(z) {
+    return 1 / (1 + Math.exp(-z));
+}
+
+function sigmoidDerivative(y) {
+    return y * (1 - y);
+}
+
+function getInputs() {
+
+    return {
+        x1: parseFloat(document.getElementById("x1").value),
+        x2: parseFloat(document.getElementById("x2").value),
+        target: parseFloat(document.getElementById("target").value),
+        lr: parseFloat(document.getElementById("lr").value)
+    };
+
+}
+
+
+function forward() {
+
+    let p = getInputs();
+
+    values.z1 =
+        p.x1 * weights.w1 +
+        p.x2 * weights.w2 +
+        biases.b1;
+
+    values.h1 = sigmoid(values.z1);
+
+    values.z2 =
+        p.x1 * weights.w3 +
+        p.x2 * weights.w4 +
+        biases.b2;
+
+    values.h2 = sigmoid(values.z2);
+
+    values.z3 =
+        values.h1 * weights.w5 +
+        values.h2 * weights.w6 +
+        biases.b3;
+
+    values.yhat = sigmoid(values.z3);
+
+    values.loss =
+        0.5 *
+        Math.pow(p.target - values.yhat, 2);
+
+}
+
+
+function calculateGradients() {
+
+    let p = getInputs();
+
+    // Output delta
+    values.deltaOutput =
+        (values.yhat - p.target) *
+        sigmoidDerivative(values.yhat);
+
+    // Gradients output layer
+    gradients.w5 =
+        values.deltaOutput * values.h1;
+
+    gradients.w6 =
+        values.deltaOutput * values.h2;
+
+    gradients.b3 =
+        values.deltaOutput;
+
+    // Hidden layer deltas
+
+    values.deltaH1 =
+        values.deltaOutput *
+        weights.w5 *
+        sigmoidDerivative(values.h1);
+
+    values.deltaH2 =
+        values.deltaOutput *
+        weights.w6 *
+        sigmoidDerivative(values.h2);
+
+    // Input → hidden gradients
+
+    gradients.w1 =
+        values.deltaH1 * p.x1;
+
+    gradients.w2 =
+        values.deltaH1 * p.x2;
+
+    gradients.w3 =
+        values.deltaH2 * p.x1;
+
+    gradients.w4 =
+        values.deltaH2 * p.x2;
+
+    gradients.b1 =
+        values.deltaH1;
+
+    gradients.b2 =
+        values.deltaH2;
+
+}
+
+
+function updateWeights() {
+
+    let p = getInputs();
+
+    weights.w1 -= p.lr * gradients.w1;
+    weights.w2 -= p.lr * gradients.w2;
+    weights.w3 -= p.lr * gradients.w3;
+    weights.w4 -= p.lr * gradients.w4;
+
+    weights.w5 -= p.lr * gradients.w5;
+    weights.w6 -= p.lr * gradients.w6;
+
+    biases.b1 -= p.lr * gradients.b1;
+    biases.b2 -= p.lr * gradients.b2;
+    biases.b3 -= p.lr * gradients.b3;
+
+}
+
+
+function nextStep() {
+
+    step++;
+
+    if(step > 4)
+        step = 1;
+
+    if(step === 1) {
+
+        forward();
+
+        showForward();
+
+    }
+
+    else if(step === 2) {
+
+        forward();
+
+        showError();
+
+    }
+
+    else if(step === 3) {
+
+        forward();
+
+        calculateGradients();
+
+        showBackprop();
+
+    }
+
+    else if(step === 4) {
+
+        forward();
+
+        calculateGradients();
+
+        let oldWeights = {...weights};
+
+        updateWeights();
+
+        showUpdate(oldWeights);
+
+    }
+
+}
+
+
+function showForward() {
+
+    let p = getInputs();
+
+    document.getElementById("stepTitle").innerHTML =
+        "Step 1 — Forward Propagation";
+
+    document.getElementById("explanation").innerHTML =
+
+        "The inputs move from left to right through the network. " +
+        "Each neuron calculates a weighted sum and applies the sigmoid activation function.";
+
+    document.getElementById("calculationArea").innerHTML =
+
+        `<div class="formula">
+        z₁ = (${p.x1} × ${weights.w1.toFixed(3)})
+        + (${p.x2} × ${weights.w2.toFixed(3)})
+        + ${biases.b1.toFixed(3)}
+        = ${values.z1.toFixed(4)}
+        <br><br>
+        h₁ = sigmoid(${values.z1.toFixed(4)})
+        = ${values.h1.toFixed(4)}
+        </div>
+
+        <div class="formula">
+        z₂ = (${p.x1} × ${weights.w3.toFixed(3)})
+        + (${p.x2} × ${weights.w4.toFixed(3)})
+        + ${biases.b2.toFixed(3)}
+        = ${values.z2.toFixed(4)}
+        <br><br>
+        h₂ = sigmoid(${values.z2.toFixed(4)})
+        = ${values.h2.toFixed(4)}
+        </div>
+
+        <div class="formula">
+        ŷ = sigmoid(
+        h₁ × w₅ + h₂ × w₆ + b₃
+        )
+        <br>
+        ŷ = ${values.yhat.toFixed(4)}
+        </div>`;
+
+    updateDisplay();
+
+}
+
+
+function showError() {
+
+    let p = getInputs();
+
+    document.getElementById("stepTitle").innerHTML =
+        "Step 2 — Calculate Error";
+
+    document.getElementById("explanation").innerHTML =
+
+        "The prediction is compared with the target value. " +
+        "The difference produces the loss. A smaller loss means a better prediction.";
+
+    document.getElementById("calculationArea").innerHTML =
+
+        `<div class="formula">
+        Target y = ${p.target.toFixed(4)}
+        <br>
+        Prediction ŷ = ${values.yhat.toFixed(4)}
+        </div>
+
+        <div class="formula">
+        Loss = ½(y − ŷ)²
+        <br>
+        Loss = ½(${p.target.toFixed(4)} − ${values.yhat.toFixed(4)})²
+        <br>
+        Loss = ${values.loss.toFixed(6)}
+        </div>`;
+
+    updateDisplay();
+
+}
+
+
+function showBackprop() {
+
+    document.getElementById("stepTitle").innerHTML =
+        "Step 3 — Backpropagation";
+
+    document.getElementById("explanation").innerHTML =
+
+        "Now the error travels backward through the network. " +
+        "The chain rule determines how strongly each weight contributed to the error.";
+
+    document.getElementById("calculationArea").innerHTML =
+
+        `<div class="formula">
+        Output δ =
+        (ŷ − y) × sigmoid'(ŷ)
+        <br>
+        δoutput = ${values.deltaOutput.toFixed(6)}
+        </div>
+
+        <div class="formula">
+        ∂Loss/∂w₅ =
+        δoutput × h₁
+        =
+        ${gradients.w5.toFixed(6)}
+        <br><br>
+
+        ∂Loss/∂w₆ =
+        δoutput × h₂
+        =
+        ${gradients.w6.toFixed(6)}
+        </div>
+
+        <div class="formula">
+        Hidden δ₁ =
+        δoutput × w₅ × sigmoid'(h₁)
+        =
+        ${values.deltaH1.toFixed(6)}
+        <br><br>
+
+        Hidden δ₂ =
+        δoutput × w₆ × sigmoid'(h₂)
+        =
+        ${values.deltaH2.toFixed(6)}
+        </div>
+
+        <div class="formula">
+        Gradients are now available for all weights.
+        </div>`;
+
+    updateDisplay();
+    updateGradientTable();
+
+}
+
+
+function showUpdate(oldWeights) {
+
+    let p = getInputs();
+
+    document.getElementById("stepTitle").innerHTML =
+        "Step 4 — Update Weights";
+
+    document.getElementById("explanation").innerHTML =
+
+        "Gradient descent changes every weight in the opposite direction " +
+        "of the gradient. This should reduce the prediction error over repeated training.";
+
+    document.getElementById("calculationArea").innerHTML =
+
+        `<div class="formula">
+        w(new) = w(old) − η × gradient
+        </div>
+
+        <div class="formula">
+        w₅(new) =
+        ${oldWeights.w5.toFixed(4)}
+        −
+        (${p.lr} × ${gradients.w5.toFixed(6)})
+        =
+        ${weights.w5.toFixed(4)}
+        </div>
+
+        <div class="formula">
+        w₆(new) =
+        ${oldWeights.w6.toFixed(4)}
+        −
+        (${p.lr} × ${gradients.w6.toFixed(6)})
+        =
+        ${weights.w6.toFixed(4)}
+        </div>
+
+        <p>
+        The network has completed one learning cycle.
+        Click <b>Next Step</b> again to perform another forward pass.
+        </p>`;
+
+    updateDisplay();
+    updateWeightTable();
+
+}
+
+
+function updateDisplay() {
+
+    let p = getInputs();
+
+    document.getElementById("vX1").innerText =
+        p.x1.toFixed(2);
+
+    document.getElementById("vX2").innerText =
+        p.x2.toFixed(2);
+
+    document.getElementById("vTarget").innerText =
+        p.target.toFixed(2);
+
+    if(values.h1 !== undefined)
+        document.getElementById("vH1").innerText =
+            values.h1.toFixed(4);
+
+    if(values.h2 !== undefined)
+        document.getElementById("vH2").innerText =
+            values.h2.toFixed(4);
+
+    if(values.yhat !== undefined)
+        document.getElementById("vY").innerText =
+            values.yhat.toFixed(4);
+
+    if(values.loss !== undefined)
+        document.getElementById("vLoss").innerText =
+            values.loss.toFixed(6);
+
+    document.getElementById("x1Text").innerText =
+        "x₁ = " + p.x1.toFixed(2);
+
+    document.getElementById("x2Text").innerText =
+        "x₂ = " + p.x2.toFixed(2);
+
+    if(values.h1 !== undefined)
+        document.getElementById("h1Text").innerText =
+            "h₁ = " + values.h1.toFixed(2);
+
+    if(values.h2 !== undefined)
+        document.getElementById("h2Text").innerText =
+            "h₂ = " + values.h2.toFixed(2);
+
+    if(values.yhat !== undefined)
+        document.getElementById("outText").innerText =
+            "ŷ = " + values.yhat.toFixed(2);
+
+    document.getElementById("w1Text").innerText =
+        weights.w1.toFixed(2);
+
+    document.getElementById("w2Text").innerText =
+        weights.w2.toFixed(2);
+
+    document.getElementById("w3Text").innerText =
+        weights.w3.toFixed(2);
+
+    document.getElementById("w4Text").innerText =
+        weights.w4.toFixed(2);
+
+    document.getElementById("w5Text").innerText =
+        weights.w5.toFixed(2);
+
+    document.getElementById("w6Text").innerText =
+        weights.w6.toFixed(2);
+
+    colorEdge("e1",weights.w1);
+    colorEdge("e2",weights.w2);
+    colorEdge("e3",weights.w3);
+    colorEdge("e4",weights.w4);
+    colorEdge("e5",weights.w5);
+    colorEdge("e6",weights.w6);
+
+    if(values.loss !== undefined) {
+
+        let percentage =
+            Math.max(0, Math.min(100, (1 - values.loss) * 100));
+
+        document.getElementById("lossBar").style.width =
+            percentage + "%";
+
+    }
+
+}
+
+
+function colorEdge(id,value) {
+
+    let element =
+        document.getElementById(id);
+
+    element.classList.remove("positive");
+    element.classList.remove("negative");
+
+    if(value >= 0)
+        element.classList.add("positive");
+    else
+        element.classList.add("negative");
+
+}
+
+
+function updateWeightTable() {
+
+    for(let i=1;i<=6;i++) {
+
+        document.getElementById("tw"+i).innerText =
+            weights["w"+i].toFixed(5);
+
+        document.getElementById("uw"+i).innerText =
+            weights["w"+i].toFixed(5);
+
+    }
+
+}
+
+
+function updateGradientTable() {
+
+    for(let i=1;i<=6;i++) {
+
+        if(gradients["w"+i] !== undefined) {
+
+            document.getElementById("gw"+i).innerText =
+                gradients["w"+i].toFixed(6);
+
+        }
+
+    }
+
+}
+
+
+function autoRun() {
+
+    stopAuto();
+
+    timer = setInterval(function() {
+
+        nextStep();
+
+    }, 1500);
+
+}
+
+
+function stopAuto() {
+
+    if(timer) {
+
+        clearInterval(timer);
+        timer = null;
+
+    }
+
+}
+
+
+function resetNetwork() {
+
+    stopAuto();
+
+    step = 0;
+
+    weights = {
+        w1: 0.5,
+        w2: -0.3,
+        w3: 0.8,
+        w4: 0.2,
+        w5: 0.4,
+        w6: -0.5
+    };
+
+    biases = {
+        b1: 0.1,
+        b2: -0.1,
+        b3: 0.05
+    };
+
+    values = {};
+    gradients = {};
+
+    document.getElementById("stepTitle").innerHTML =
+        "Step 0 — Ready";
+
+    document.getElementById("explanation").innerHTML =
+        "The neural network contains two input neurons, two hidden neurons, and one output neuron. Click <b>Next Step</b> to begin.";
+
+    document.getElementById("calculationArea").innerHTML =
+        "Click <b>Next Step</b> to see the mathematical calculations.";
+
+    document.getElementById("vH1").innerText = "-";
+    document.getElementById("vH2").innerText = "-";
+    document.getElementById("vY").innerText = "-";
+    document.getElementById("vLoss").innerText = "-";
+
+    document.getElementById("lossBar").style.width = "0%";
+
+    updateWeightTable();
+
+    for(let i=1;i<=6;i++) {
+
+        document.getElementById("gw"+i).innerText = "-";
+        document.getElementById("uw"+i).innerText = "-";
+
+    }
+
+    updateDisplay();
+
+}
+
+
+updateDisplay();
+updateWeightTable();
+
+</script>
+
+</body>
+</html>
